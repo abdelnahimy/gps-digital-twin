@@ -18,12 +18,12 @@ def simulate(csv_path, delay=0.01):
     df = pd.read_csv(csv_path)
     for _, row in df.iterrows():
         ping = {
-            "trip_id": row["TRIP_ID"],
-            "taxi_id": row["TAXI_ID"],
-            "timestamp": row["TIMESTAMP"],
-            "lon": row["lon"],
-            "lat": row["lat"],
-            "ping_index": row["ping_index"]
+            "trip_id": int(row["TRIP_ID"]),
+            "taxi_id": int(row["TAXI_ID"]),
+            "timestamp": int(row["TIMESTAMP"]),
+            "lon": float(row["lon"]),
+            "lat": float(row["lat"]),
+            "ping_index": int(row["ping_index"])
         }
         producer.produce(
             TOPIC,
