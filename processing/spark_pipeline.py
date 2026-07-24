@@ -7,6 +7,8 @@ sys.path.insert(0, "D:\\Projects\\PFA\\gps-digital-twin")
 from twin.twin_registry import TwinRegistry
 from processing.projection import latlon_to_meters
 from twin.anomaly_detector import is_anomaly
+from processing.road_enrichment import get_nearest_road
+
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col
 from pyspark.sql.types import StructType, StructField, StringType, DoubleType, LongType, IntegerType
@@ -45,6 +47,7 @@ def process_batch(batch_df, batch_id):
         x, y = latlon_to_meters(row["lat"], row["lon"])
         state = twin.update(x, y)
         state["anomaly"] = is_anomaly(state)
+        state["road"] = get_nearest_road(row["lat"], row["lon"])
         print(state)
 
 raw_stream = spark.readStream \
