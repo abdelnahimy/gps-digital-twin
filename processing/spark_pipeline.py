@@ -8,6 +8,7 @@ from twin.twin_registry import TwinRegistry
 from processing.projection import latlon_to_meters
 from twin.anomaly_detector import is_anomaly
 from processing.road_enrichment import get_nearest_road
+from storage.mongo_client import twin_states, anomalies
 
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col
@@ -48,6 +49,13 @@ def process_batch(batch_df, batch_id):
         state = twin.update(x, y)
         state["anomaly"] = is_anomaly(state)
         state["road"] = get_nearest_road(row["lat"], row["lon"])
+        state["timestamp"] = int(row["timestamp"])
+
+        twin_states.insert_one(dict(state))
+
+        if state["anomaly"]:
+            anomalies.insert_one(dict(state))
+            
         print(state)
 
 raw_stream = spark.readStream \
