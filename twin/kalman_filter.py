@@ -58,5 +58,6 @@ class VehicleTwin:
             "y": float(self.kf.x[1]),
             "vx": float(self.kf.x[2]),
             "vy": float(self.kf.x[3]),
+            "speed": float(np.sqrt(self.kf.x[2]**2 + self.kf.x[3]**2)),
             "uncertainty": float(np.trace(self.kf.P))
         }
