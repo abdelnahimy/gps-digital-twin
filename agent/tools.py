@@ -5,7 +5,7 @@ from langchain.tools import tool
 from storage.mongo_client import twin_states, anomalies, maintenance
 
 @tool
-def query_vehicule_history(taxi_id: str) -> str:
+def query_vehicle_history(taxi_id: str) -> str:
     """Query the last 10 GPS states for a specific vehicle."""
     results = list(twin_states.find(
         {"taxi_id": taxi_id},
