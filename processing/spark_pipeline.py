@@ -51,7 +51,9 @@ def process_batch(batch_df, batch_id):
         state["anomaly"] = is_anomaly(state)
         state["road"] = get_nearest_road(row["lat"], row["lon"])
         state["timestamp"] = int(row["timestamp"])
-
+        state["lat"] = float(row["lat"])
+        state["lon"] = float(row["lon"])
+        
         twin_states.insert_one(dict(state))
 
         if state["anomaly"]:
