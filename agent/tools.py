@@ -36,3 +36,26 @@ def find_similar_anomalies(description: str) -> str:
     if not results["documents"][0]:
         return "No similar anomalies found"
     return str(results["documents"][0])
+
+@tool
+def get_fleet_summary() -> str:
+    """Get an overall summary of the fleet including total vehicles, anomalies, and average speed."""
+    total = twin_states.distinct("taxi_id")
+    recent_anomalies = list(anomalies.find({}, {"_id": 0}).sort("timestamp", -1).limit(5))
+    
+    all_states_pipeline = [
+        {"$sort": {"timestamp": -1}},
+        {"$group": {"_id": "$taxi_id", "last_state": {"$first": "$$ROOT"}}},
+        {"$replaceRoot": {"newRoot": "$last_state"}}
+    ]
+    latest_states = list(twin_states.aggregate(all_states_pipeline))
+    
+    avg_speed = sum(s.get("speed", 0) for s in latest_states) / len(latest_states) if latest_states else 0
+    anomaly_count = sum(1 for s in latest_states if s.get("anomaly"))
+    
+    return (
+        f"Fleet summary: {len(total)} total vehicles tracked, "
+        f"{anomaly_count} currently showing anomalies, "
+        f"average speed {avg_speed:.1f} m/s. "
+        f"Recent anomalies: {[a.get('taxi_id') for a in recent_anomalies]}"
+    )

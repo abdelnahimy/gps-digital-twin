@@ -48,7 +48,9 @@ def process_batch(batch_df, batch_id):
         twin = registry.get_or_create(str(int(float(row["taxi_id"]))))
         x, y = latlon_to_meters(row["lat"], row["lon"])
         state = twin.update(x, y)
-        state["anomaly"] = is_anomaly(state)
+        anomaly, anomaly_type = is_anomaly(state)
+        state["anomaly"] = anomaly
+        state["anomaly_type"] = anomaly_type
         state["road"] = get_nearest_road(row["lat"], row["lon"])
         state["timestamp"] = int(row["timestamp"])
         state["lat"] = float(row["lat"])

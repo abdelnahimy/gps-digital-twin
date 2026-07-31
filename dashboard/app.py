@@ -17,10 +17,25 @@ st.set_page_config(
 
 st.title("🚕 GPS Digital Twin — Fleet Monitor")
 
+# Sidebar statistics
+st.sidebar.title("📊 Fleet Statistics")
+
+vehicles_response = requests.get(f"{API_URL}/vehicles")
+vehicles = vehicles_response.json()
+
+anomalies_response = requests.get(f"{API_URL}/anomalies")
+anomaly_list = anomalies_response.json()
+
+total_taxis = len(vehicles)
+active_anomalies = sum(1 for v in vehicles if v.get("anomaly"))
+avg_speed = sum(v.get("speed", 0) for v in vehicles) / total_taxis if total_taxis > 0 else 0
+
+st.sidebar.metric("🚕 Active Taxis", total_taxis)
+st.sidebar.metric("⚠️ Anomalies", active_anomalies)
+st.sidebar.metric("⚡ Avg Speed", f"{avg_speed:.1f} m/s")
+
 st.subheader("🗺️ Live Fleet Map")
 
-response = requests.get(f"{API_URL}/vehicles")
-vehicles = response.json()
 
 m = folium.Map(location=[41.15, -8.61], zoom_start=13)
 
@@ -40,8 +55,6 @@ st_folium(m, width=1200, height=500, returned_objects=[])
 
 st.subheader("⚠️ Recent Anomalies")
 
-response = requests.get(f"{API_URL}/anomalies")
-anomaly_list = response.json()
 
 if not anomaly_list:
     st.info("No anomalies detected yet.")

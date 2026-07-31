@@ -7,10 +7,10 @@ load_dotenv()
 
 from langchain_groq import ChatGroq
 from langgraph.prebuilt import create_react_agent
-from agent.tools import query_vehicle_history, query_maintenance, find_similar_anomalies
+from agent.tools import query_vehicle_history, query_maintenance, find_similar_anomalies, get_fleet_summary
 from agent.prompts import SYSTEM_PROMPT
 
-tools = [query_vehicle_history, query_maintenance, find_similar_anomalies]
+tools = [query_vehicle_history, query_maintenance, find_similar_anomalies, get_fleet_summary]
 
 llm = ChatGroq(
     model="llama-3.1-8b-instant",

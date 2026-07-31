@@ -34,6 +34,9 @@ class VehicleTwin:
         self.taxi_id = taxi_id
         self.kf = create_vehicle_filter()
         self.initialized = False
+        self.last_x = None
+        self.last_y = None
+
     def update(self, x: float, y: float) -> dict:
         """
         Update the Kalman filter with new GPS coordinates.
@@ -52,6 +55,11 @@ class VehicleTwin:
             self.kf.predict()
             self.kf.update(np.array([[x], [y]]))
 
+        prev_x = self.last_x
+        prev_y = self.last_y
+        self.last_x = float(self.kf.x[0])
+        self.last_y = float(self.kf.x[1])
+
         return {
             "taxi_id": self.taxi_id,
             "x": float(self.kf.x[0]),
@@ -59,5 +67,7 @@ class VehicleTwin:
             "vx": float(self.kf.x[2]),
             "vy": float(self.kf.x[3]),
             "speed": float(np.sqrt(self.kf.x[2]**2 + self.kf.x[3]**2)),
-            "uncertainty": float(np.trace(self.kf.P))
+            "uncertainty": float(np.trace(self.kf.P)),
+            "prev_x": prev_x,
+            "prev_y": prev_y
         }
