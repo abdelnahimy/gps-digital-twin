@@ -63,7 +63,8 @@ else:
         st.error(
             f"🚨 Taxi **{a['taxi_id']}** | "
             f"Speed: {a.get('speed', 0):.1f} m/s | "
-            f"Uncertainty: {a.get('uncertainty', 0):.2f}"
+            f"Uncertainty: {a.get('uncertainty', 0):.2f} | "
+            f"Type: {a.get('anomaly_type', 'unknown')}"
         )
 
 st.subheader("🤖 Fleet Assistant")

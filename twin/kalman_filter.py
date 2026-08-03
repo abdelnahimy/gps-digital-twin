@@ -23,9 +23,9 @@ def create_vehicle_filter(dt: float = 15.0) -> KalmanFilter:
     kf.H = np.array([
                     [1, 0, 0, 0],
                     [0, 1, 0, 0]])
-    kf.R = np.eye(2) * 5.0      # measurement noise
+    kf.R = np.eye(2) * 9.0    # GPS noise ~3m std dev → 9 variance
     kf.P = np.eye(4) * 500.0    # initial uncertainty
-    kf.Q = np.eye(4) * 0.1      # process noise
+    kf.Q = np.eye(4) * 0.01   # smoother velocity estimates
     kf.x = np.zeros((4, 1))  # initial state
     return kf
 
