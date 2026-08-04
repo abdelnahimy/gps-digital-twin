@@ -15,6 +15,8 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col
 from pyspark.sql.types import StructType, StructField, StringType, DoubleType, LongType, IntegerType
 
+from agent.graph import run_agent, auto_diagnose
+
 TOPIC = "gps-pings"
 
 ping_schema = StructType([
@@ -61,6 +63,8 @@ def process_batch(batch_df, batch_id):
         if state["anomaly"]:
             anomalies.insert_one(dict(state))
             store_anomaly(state)
+            # NEW — trigger agent automatically
+            auto_diagnose(state)
             
         print(state)
 

@@ -67,6 +67,28 @@ else:
             f"Type: {a.get('anomaly_type', 'unknown')}"
         )
 
+st.subheader("🤖 Proactive Agent Diagnoses")
+
+diag_response = requests.get(f"{API_URL}/diagnoses")
+diag_list = diag_response.json()
+
+if not diag_list:
+    st.info("No diagnoses yet.")
+else:
+    for d in diag_list[:5]:
+        diagnosis = d.get("diagnosis", {})
+        if isinstance(diagnosis, dict):
+            severity = diagnosis.get("severity", "UNKNOWN")
+            color = "🔴" if severity == "HIGH" else "🟡" if severity == "MEDIUM" else "🟢"
+            st.warning(
+                f"{color} **Taxi {d['taxi_id']}** | "
+                f"Type: {d.get('anomaly_type')} | "
+                f"Severity: {severity}\n\n"
+                f"**Diagnosis:** {diagnosis.get('diagnosis', 'N/A')}\n\n"
+                f"**Recommendation:** {diagnosis.get('recommendation', 'N/A')}"
+            )
+
+
 st.subheader("🤖 Fleet Assistant")
 
 question = st.text_input("Ask the agent:", placeholder="e.g. What is the maintenance status of taxi 20000154?")

@@ -11,6 +11,9 @@ twin_states = db["twin_states"]
 anomalies = db["anomalies"]
 maintenance = db["maintenance"]
 
+diagnoses = db["diagnoses"]
+diagnoses.create_index([("taxi_id", 1), ("timestamp", -1)])
+
 twin_states.create_index([("taxi_id", 1), ("timestamp", -1)])
 anomalies.create_index([("taxi_id", 1), ("timestamp", -1)])
 maintenance.create_index([("taxi_id", 1)])
