@@ -80,10 +80,12 @@ def get_anomalies():
 
 class AgentQuery(BaseModel):
     question: str
-
+    
 @app.post("/agent")
-def ask_agent(query: AgentQuery):
-    answer = run_agent(query.question)
+async def ask_agent(query: AgentQuery):
+    import asyncio
+    loop = asyncio.get_event_loop()
+    answer = await loop.run_in_executor(None, run_agent, query.question)
     return {"question": query.question, "answer": answer}
 
 @app.get("/diagnoses")
