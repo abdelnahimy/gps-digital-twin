@@ -5,17 +5,21 @@ import sys
 sys.path.insert(0, "D:\\Projects\\PFA\\gps-digital-twin")
 
 from twin.twin_registry import TwinRegistry
-from processing.projection import latlon_to_meters
 from twin.anomaly_detector import is_anomaly
+from twin.health_score import update_health_score
+
+from processing.projection import latlon_to_meters
 from processing.road_enrichment import get_nearest_road
+
 from storage.mongo_client import twin_states, anomalies
+
 from agent.memory import store_anomaly
+from agent.graph import run_agent, auto_diagnose
 
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col
 from pyspark.sql.types import StructType, StructField, StringType, DoubleType, LongType, IntegerType
 
-from agent.graph import run_agent, auto_diagnose
 
 TOPIC = "gps-pings"
 
@@ -53,6 +57,10 @@ def process_batch(batch_df, batch_id):
         anomaly, anomaly_type = is_anomaly(state)
         state["anomaly"] = anomaly
         state["anomaly_type"] = anomaly_type
+        state["health_score"] = update_health_score(
+            str(int(float(row["taxi_id"]))),
+            anomaly_type
+        )
         state["road"] = get_nearest_road(row["lat"], row["lon"])
         state["timestamp"] = int(row["timestamp"])
         state["lat"] = float(row["lat"])

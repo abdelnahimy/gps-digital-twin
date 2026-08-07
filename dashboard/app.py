@@ -114,6 +114,12 @@ def fetch(endpoint):
 vehicles     = fetch("vehicles")
 anomaly_list = fetch("anomalies")
 diag_list    = fetch("diagnoses")
+health_list = fetch("health")
+
+# session state for map
+if "map_data" not in st.session_state or st.session_state.get("refresh_map"):
+    st.session_state["map_data"] = vehicles
+    st.session_state["refresh_map"] = False
 
 total_taxis      = len(vehicles)
 active_anomalies = sum(1 for v in vehicles if v.get("anomaly"))
@@ -177,7 +183,7 @@ with tab1:
             tiles="OpenStreetMap"
         )
 
-        for v in vehicles:
+        for v in st.session_state["map_data"]:
             if "lat" not in v or "lon" not in v:
                 continue
             is_anom = v.get("anomaly", False)
@@ -231,6 +237,7 @@ with tab1:
     with right_col:
         if st.button("🔄 Refresh Data", use_container_width=True):
             st.cache_data.clear()
+            st.session_state["refresh_map"] = True
             st.rerun()
 
         st.markdown("<div style='height:0.75rem'></div>", unsafe_allow_html=True)
@@ -307,76 +314,108 @@ with tab1:
                 </div>
                 """, unsafe_allow_html=True)
 
+
+        st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
+        st.markdown("##### 🏥 Vehicle Health Scores")
+
+        if not health_list:
+            st.info("No health scores yet.")
+        else:
+            for h in health_list[:8]:
+                tid   = h.get("taxi_id", "N/A")
+                score = h.get("score", 100)
+                color = "#ef4444" if score < 40 else "#f59e0b" if score < 70 else "#22c55e"
+                icon  = "🔴" if score < 40 else "🟡" if score < 70 else "🟢"
+                st.markdown(f"""
+                <div style="margin-bottom:0.5rem">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:0.2rem">
+                        <span style="font-size:0.75rem;color:#e5e7eb;font-weight:600">{icon} Taxi {tid}</span>
+                        <span style="font-size:0.75rem;color:{color};font-weight:700">{score}/100</span>
+                    </div>
+                    <div style="background:#1e2130;border-radius:4px;height:6px">
+                        <div style="background:{color};width:{score}%;height:6px;border-radius:4px"></div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
 # ══════════════════════════════════════════════════════════════════════════
 # TAB 2 — Fleet Assistant
 # ══════════════════════════════════════════════════════════════════════════
 with tab2:
-    left, right = st.columns([3, 2], gap="medium")
+    st.markdown("##### 💬 Ask the Fleet AI")
+    st.caption("Queries vehicle history, maintenance records, and past anomalies.")
 
-    with left:
-        st.markdown("##### 💬 Ask the Fleet AI")
-        st.caption("Queries vehicle history, maintenance records, and past anomalies to give actionable insights.")
+    question = st.text_input(
+        "question",
+        placeholder="e.g. Which taxi needs attention most urgently?",
+        label_visibility="collapsed"
+    )
+    st.caption("💡 Try: *What is the maintenance status of taxi 20000154?* · *Summarize the fleet health*")
 
-        st.markdown("<div style='height:0.25rem'></div>", unsafe_allow_html=True)
+    if st.button("Ask Agent", use_container_width=True):
+        if question:
+            with st.spinner("Agent reasoning — 15–30 seconds..."):
+                try:
+                    import json, re
+                    response = requests.post(
+                        f"{API_URL}/agent",
+                        json={"question": question},
+                        timeout=60
+                    )
+                    answer = response.json().get("answer", "No answer received.")
 
-        question = st.text_input(
-            "question",
-            placeholder="e.g. Which taxi needs attention most urgently?",
-            label_visibility="collapsed"
-        )
-        st.caption("💡 Try: *What is the maintenance status of taxi 20000154?* · *Summarize the fleet health* · *Find anomalies similar to high speed detection*")
-
-        st.markdown("<div style='height:0.25rem'></div>", unsafe_allow_html=True)
-
-        if st.button("Ask Agent", use_container_width=True):
-            if question:
-                with st.spinner("Agent reasoning — this may take 15–30 seconds..."):
+                    # try to parse JSON response
                     try:
-                        response = requests.post(
-                            f"{API_URL}/agent",
-                            json={"question": question},
-                            timeout=60
-                        )
-                        answer = response.json().get("answer", "No answer received.")
-                        st.markdown("**Agent response:**")
+                        json_match = re.search(r'\{.*\}', answer, re.DOTALL)
+                        if json_match:
+                            parsed = json.loads(json_match.group())
+                            severity = parsed.get("severity", "N/A")
+                            color = "#ef4444" if severity == "HIGH" else "#f59e0b" if severity == "MEDIUM" else "#22c55e"
+                            st.markdown("**Agent Response:**")
+                            st.markdown(f"**Severity:** <span style='color:{color};font-weight:700'>{severity}</span>", unsafe_allow_html=True)
+                            st.markdown(f"**Diagnosis:** {parsed.get('diagnosis', 'N/A')}")
+                            st.markdown(f"**Recommendation:** {parsed.get('recommendation', 'N/A')}")
+                            st.markdown(f"**Maintenance:** {parsed.get('maintenance_status', 'N/A')}")
+                            st.markdown(f"**Confidence:** {parsed.get('confidence', 'N/A')}")
+                        else:
+                            st.markdown(f"""
+                            <div style="background:#161b27;border:1px solid #1e2130;border-radius:10px;
+                            padding:1.25rem;font-size:0.82rem;color:#d1d5db;line-height:1.75;
+                            margin-top:0.5rem;white-space:pre-wrap;">{answer}</div>
+                            """, unsafe_allow_html=True)
+                    except:
                         st.markdown(f"""
-                        <div style="
-                            background:#161b27;border:1px solid #1e2130;
-                            border-radius:10px;padding:1.25rem;
-                            font-size:0.82rem;color:#d1d5db;
-                            line-height:1.75;margin-top:0.5rem;
-                            white-space:pre-wrap;
-                        ">{answer}</div>
+                        <div style="background:#161b27;border:1px solid #1e2130;border-radius:10px;
+                        padding:1.25rem;font-size:0.82rem;color:#d1d5db;line-height:1.75;
+                        margin-top:0.5rem;white-space:pre-wrap;">{answer}</div>
                         """, unsafe_allow_html=True)
-                    except requests.exceptions.Timeout:
-                        st.error("⏱️ Agent timed out. Try a simpler question.")
-                    except Exception as e:
-                        st.error(f"Error: {e}")
-            else:
-                st.warning("Please enter a question.")
 
-    with right:
-        st.markdown("##### 📋 Recent Auto-Diagnoses")
-        st.caption("Automatically generated when anomalies are detected.")
-
-        st.markdown("<div style='height:0.25rem'></div>", unsafe_allow_html=True)
-
-        if not diag_list:
-            st.info("No diagnoses yet.")
+                except requests.exceptions.Timeout:
+                    st.error("⏱️ Agent timed out.")
+                except Exception as e:
+                    st.error(f"Error: {e}")
         else:
-            for d in diag_list[:8]:
-                diagnosis = d.get("diagnosis", {})
-                tid   = d.get("taxi_id", "N/A")
-                atype = d.get("anomaly_type", "unknown")
-                label = f"Taxi {tid} — {atype}"
+            st.warning("Please enter a question.")
 
-                with st.expander(label):
-                    if isinstance(diagnosis, dict):
-                        severity = diagnosis.get("severity", "N/A")
-                        color    = "#ef4444" if severity == "HIGH" else "#f59e0b" if severity == "MEDIUM" else "#3b82f6"
-                        st.markdown(f"**Severity:** <span style='color:{color};font-weight:700'>{severity}</span>", unsafe_allow_html=True)
-                        st.markdown(f"**Diagnosis:** {diagnosis.get('diagnosis', 'N/A')}")
-                        st.markdown(f"**Recommendation:** {diagnosis.get('recommendation', 'N/A')}")
-                        st.markdown(f"**Maintenance:** {diagnosis.get('maintenance_status', 'N/A')}")
-                    else:
-                        st.write(str(diagnosis))
+    st.markdown("<div style='height:1.5rem'></div>", unsafe_allow_html=True)
+    st.markdown("##### 📋 All Auto-Diagnoses")
+    st.caption(f"{len(diag_list)} diagnoses generated automatically by the pipeline")
+
+    if not diag_list:
+        st.info("No diagnoses yet.")
+    else:
+        for d in diag_list:
+            diagnosis = d.get("diagnosis", {})
+            tid   = d.get("taxi_id", "N/A")
+            atype = d.get("anomaly_type", "unknown")
+            label = f"Taxi {tid} — {atype}"
+
+            with st.expander(label):
+                if isinstance(diagnosis, dict):
+                    severity = diagnosis.get("severity", "N/A")
+                    color    = "#ef4444" if severity == "HIGH" else "#f59e0b" if severity == "MEDIUM" else "#3b82f6"
+                    st.markdown(f"**Severity:** <span style='color:{color};font-weight:700'>{severity}</span>", unsafe_allow_html=True)
+                    st.markdown(f"**Diagnosis:** {diagnosis.get('diagnosis', 'N/A')}")
+                    st.markdown(f"**Recommendation:** {diagnosis.get('recommendation', 'N/A')}")
+                    st.markdown(f"**Maintenance:** {diagnosis.get('maintenance_status', 'N/A')}")
+                else:
+                    st.write(str(diagnosis))

@@ -3,7 +3,7 @@ sys.path.insert(0, "D:\\Projects\\PFA\\gps-digital-twin")
 
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
-from storage.mongo_client import twin_states, anomalies , diagnoses
+from storage.mongo_client import twin_states, anomalies, diagnoses, health_scores
 from agent.graph import run_agent
 from pydantic import BaseModel
 from typing import List
@@ -76,6 +76,12 @@ def get_anomalies():
     results = list(anomalies.find(
         {}, {"_id": 0}
     ).sort("_id", -1).limit(50))
+    return results
+
+
+@app.get("/health")
+def get_health_scores():
+    results = list(health_scores.find({}, {"_id": 0}).sort("score", 1))
     return results
 
 class AgentQuery(BaseModel):
