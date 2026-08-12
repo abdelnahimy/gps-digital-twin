@@ -191,3 +191,6 @@ xyzservices==2026.3.0
 yarl==1.24.2
 zipp==4.1.0
 zstandard==0.25.0
+scikit-learn==1.6.1
+joblib==1.4.2
+plotly==5.22.0
