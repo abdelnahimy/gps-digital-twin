@@ -45,20 +45,6 @@ services:
       volumes:
         - .:/app
 
-  dashboard:
-      build:
-        context: .
-        dockerfile: dashboard/Dockerfile
-      ports:
-        - "8501:8501"
-      depends_on:
-        - api
-      env_file:
-        - .env
-      environment:
-        - API_URL=http://api:8000
-      volumes:
-        - .:/app
 
 volumes:
   mongodb_data:

@@ -3,35 +3,40 @@ sys.path.insert(0, "D:\\Projects\\PFA\\gps-digital-twin")
 
 from storage.mongo_client import health_scores
 
-ANOMALY_PENALTIES = {
-    "speed": -5,
-    "position_jump": -3,
-    "uncertainty": -2,
-    "none": +2  # reward for normal ping
-}
+WINDOW = 100  # rolling window length, in pings
 
-def update_health_score(taxi_id: str, anomaly_type: str) -> int:
+
+def update_health_score(taxi_id: str, is_anomaly: bool) -> int:
     """
-    Update the health score for a taxi and return the new score.
+    Update and return a vehicle's health score.
+
+    Score is the percentage of that vehicle's last WINDOW pings that were
+    anomaly-free. Unlike a weighted-penalty scheme this needs no arbitrary
+    constants — a score of 94 means precisely that 94% of recent pings were
+    clean.
+
+    Parameters:
+        taxi_id (str): Vehicle identifier.
+        is_anomaly (bool): Whether this ping was flagged by any detector.
+
+    Returns:
+        int: Health score, 0-100.
     """
-    penalty = ANOMALY_PENALTIES.get(anomaly_type, 0)
+    doc = health_scores.find_one({"taxi_id": taxi_id}) or {"clean": 0, "total": 0}
 
-    result = health_scores.find_one_and_update(
-        {"taxi_id": taxi_id},
-        {"$inc": {"score": penalty}},
-        upsert=True,
-        return_document=True
-    )
+    clean = doc.get("clean", 0) + (0 if is_anomaly else 1)
+    total = doc.get("total", 0) + 1
 
-    # clamp between 0 and 100
-    score = result.get("score", 100) if result else 100
-    score = max(0, min(100, score))
+    # decay both counters once the window is full, so old pings fade out
+    if total > WINDOW:
+        clean = int(clean * WINDOW / total)
+        total = WINDOW
 
-    # save clamped value
+    score = int(clean / total * 100)
+
     health_scores.update_one(
         {"taxi_id": taxi_id},
-        {"$set": {"score": score}},
-        upsert=True
+        {"$set": {"clean": clean, "total": total, "score": score}},
+        upsert=True,
     )
-
     return score

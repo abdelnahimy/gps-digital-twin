@@ -19,10 +19,10 @@ def test_normal_state():
 def test_speed_anomaly():
     state = {
         "x": 532681.0, "y": 4554796.0,
-        "vx": 60.0, "vy": 40.0,
-        "speed": 72.0,
+        "vx": 90.0, "vy": 60.0,
+        "speed": 108.2,
         "uncertainty": 9.0,
-        "prev_x": None, "prev_y": None
+        "prev_x": 532600.0, "prev_y": 4554700.0
     }
     anomaly, anomaly_type = is_anomaly(state)
     assert anomaly == True

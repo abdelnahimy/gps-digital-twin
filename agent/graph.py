@@ -19,7 +19,7 @@ from agent.prompts import SYSTEM_PROMPT
 tools = [query_vehicle_history, query_maintenance, find_similar_anomalies, get_fleet_summary]
 
 llm = ChatGroq(
-    model="openai/gpt-oss-120b",
+    model="llama-3.1-8b-instant",
     temperature=0,
     api_key=os.getenv("GROQ_API_KEY")
 )
